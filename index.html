@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Dragon Memo - フォルダ選択</title>
+</head>
+<body style="margin:0">
+<script src="https://apis.google.com/js/api.js"></script>
+<script>
+// URLのフラグメント(#以降)はサーバーのアクセスログに残らないため、
+// アクセストークンはここから受け取る。
+function readParams() {
+    var hash = window.location.hash.replace(/^#/, "");
+    var result = {};
+    hash.split("&").forEach(function (pair) {
+        if (!pair) {
+            return;
+        }
+        var idx = pair.indexOf("=");
+        if (idx < 0) {
+            return;
+        }
+        var key = decodeURIComponent(pair.slice(0, idx));
+        var value = decodeURIComponent(pair.slice(idx + 1));
+        result[key] = value;
+    });
+    return result;
+}
+
+function redirectToApp(query) {
+    window.location.href = "dragonmemo://drive-picker?" + query;
+}
+
+function pickerCallback(data) {
+    if (data.action === google.picker.Action.PICKED) {
+        var doc = data.docs[0];
+        redirectToApp(
+            "status=picked&id=" + encodeURIComponent(doc.id) + "&name=" + encodeURIComponent(doc.name)
+        );
+    } else if (data.action === google.picker.Action.CANCEL) {
+        redirectToApp("status=cancel");
+    }
+}
+
+function createPicker(params) {
+    var view = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
+        .setSelectFolderEnabled(true)
+        .setIncludeFolders(true);
+    var picker = new google.picker.PickerBuilder()
+        .setAppId(params.appId)
+        .setOAuthToken(params.token)
+        .setDeveloperKey(params.apiKey)
+        .addView(view)
+        .setCallback(pickerCallback)
+        .build();
+    picker.setVisible(true);
+}
+
+window.onload = function () {
+    var params = readParams();
+    gapi.load("picker", {
+        callback: function () {
+            createPicker(params);
+        },
+    });
+};
+</script>
+</body>
+</html>
